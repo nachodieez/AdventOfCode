@@ -1,1 +1,1 @@
-This repo contains my solutions to [Avent of Code](https://adventofcode.com/) 2023.
+This repo contains my solutions to [Avent of Code](https://adventofcode.com/).
