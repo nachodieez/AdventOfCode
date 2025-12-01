@@ -1,0 +1,4 @@
+.venv/
+**/inputs/
+*.in
+target/
