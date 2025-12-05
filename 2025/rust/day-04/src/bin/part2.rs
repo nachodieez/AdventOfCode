@@ -1,10 +1,11 @@
 fn main() {
-    println!("part1!");
+    println!("part2!");
     let input = include_str!("day4.in");
-    let output = part1(input);
+    let output = part2(input);
     dbg!(output);
 }
 
+#[derive(Debug)]
 struct Grid {
     cells: Vec<Vec<char>>,
     width: i64,
@@ -37,10 +38,10 @@ impl Grid {
         }
     }
 
-    fn accesible_rolls(&self, p: &Pos) -> i64 {
+    fn accesible_rolls(&self, p: &Pos) -> Option<i64> {
         match self.get(p) {
             Some('@') => {}
-            _ => return 0,
+            _ => return None,
         }
 
         let all_dirs = [
@@ -56,26 +57,32 @@ impl Grid {
 
         let mut count = 0;
         for dir in all_dirs {
-            let mut curr = *p;
-            loop {
-                if let Some(next) = curr.step(dir, self.width, self.height) {
-                    curr = next;
-
-                    match self.get(&curr) {
-                        Some('@') => {
-                            count += 1;
-                            break;
-                        }
-
-                        Some(_) => continue,
-                        None => break,
-                    }
-                } else {
-                    break;
+            let curr = match p.step(dir, self.width, self.height) {
+                Some(Pos { x, y }) => Pos { x, y },
+                None => continue,
+            };
+            match self.get(&curr) {
+                Some('@') => {
+                    count += 1;
                 }
+
+                Some(_) => continue,
+                None => continue,
             }
         }
-        count
+        Some(count)
+    }
+
+    fn remove_rolls(self, to_remove: Vec<Pos>) -> Self {
+        let mut current_cells = self.cells;
+        for pos in to_remove {
+            current_cells[pos.y as usize][pos.x as usize] = '.';
+        }
+
+        Grid {
+            cells: current_cells,
+            ..self
+        }
     }
 }
 
@@ -127,19 +134,37 @@ impl Dir {
     }
 }
 
-fn part1(input: &str) -> u64 {
-    let grid = Grid::from_str(input);
+fn part2(input: &str) -> u64 {
+    let mut grid = Grid::from_str(input);
 
-    let mut sol1 = 0;
-    for x in 0..grid.width {
-        for y in 0..grid.height {
-            if grid.accesible_rolls(&Pos { x, y }) < 4 {
-                sol1 += 1
+    let mut sol2 = 0;
+    loop {
+        let mut changes_iter = 0;
+        let mut to_remove: Vec<Pos> = Vec::new();
+        for x in 0..grid.width {
+            for y in 0..grid.height {
+                let pos_to_check = Pos { x, y };
+                match grid.accesible_rolls(&pos_to_check) {
+                    Some(n) => {
+                        if n < 4 {
+                            sol2 += 1;
+                            changes_iter += 1;
+                            to_remove.push(pos_to_check);
+                        }
+                    }
+                    None => continue,
+                };
             }
         }
+
+        if changes_iter == 0 {
+            break;
+        }
+
+        grid = grid.remove_rolls(to_remove);
     }
 
-    sol1
+    sol2
 }
 
 #[cfg(test)]
@@ -147,10 +172,9 @@ mod test {
     use super::*; // go to the parent module
 
     #[test]
-    fn example_part_one() {
-        let result = 13;
-        let input = "/
-..@@.@@@@.
+    fn example_part_two() {
+        let result = 43;
+        let input = "..@@.@@@@.
 @@@.@.@.@@
 @@@@@.@.@@
 @.@@@@..@.
@@ -161,6 +185,6 @@ mod test {
 .@@@@@@@@.
 @.@.@@@.@.";
 
-        assert_eq!(part1(&input), result);
+        assert_eq!(part2(&input), result);
     }
 }
